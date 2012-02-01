@@ -1,6 +1,5 @@
 /**
- * @author Josef Skladanka
- * http://search.twitter.com/search.json?q=%23devconf
+ * @author Josef Skladanka http://search.twitter.com/search.json?q=%23devconf
  * 
  */
 
@@ -238,9 +237,11 @@ enyo.kind({
      
 /* ==== Helper methods ==== */
     
-     /* Because localStorage stores just strings, and we need to 
-      * save the whole json object (schedule), these two methods
-      * handle the storing/retrieving.*/
+     /*
+		 * Because localStorage stores just strings, and we need to save the
+		 * whole json object (schedule), these two methods handle the
+		 * storing/retrieving.
+		 */
      setLocalObject: function(key, value){
      	localStorage.setItem(key, JSON.stringify(value));
      },
@@ -250,7 +251,7 @@ enyo.kind({
      	return value && JSON.parse(value);
      },
     
-     /* Triggers the request for current connections state.*/
+     /* Triggers the request for current connections state. */
      getConnStatus : function(inSender, inResponse)
      {
          this.$.getConnMgrStatus.call({ "subscribe": true });
@@ -259,13 +260,14 @@ enyo.kind({
 
 /* ==== Pane Switching; UI components displaying/hiding ==== */
 
-    /* This method shows/hides UI components according to the
-     * currently selected pane view.
-     * This mostly consists of switching the big/slim header
-     * and showing/hiding the back button, where appropriate.
-     * 
-     * The only exception here is the selection of the schedule
-     * list, which triggers check for the schedule update. */
+    /*
+	 * This method shows/hides UI components according to the currently selected
+	 * pane view. This mostly consists of switching the big/slim header and
+	 * showing/hiding the back button, where appropriate.
+	 * 
+	 * The only exception here is the selection of the schedule list, which
+	 * triggers check for the schedule update.
+	 */
     viewSelected: function(inSender, inView) {
          if (inView == this.$.mainPane) {
              this.$.backBtn.hide();
@@ -304,10 +306,13 @@ enyo.kind({
          }
          else if (inView == this.$.scheduleListView){
           	this.$.sdAddToCalendar.hide();
-          	/* Check, whether it's time for next check for updates of the schedule.
-          	 * Update check is triggered either if the lastScheduleCheck is null
-          	 * (i.e. the scheduleListView is shown for the first time),
-          	 * or when the specified interval passed from the last check.*/
+          	/*
+			 * Check, whether it's time for next check for updates of the
+			 * schedule. Update check is triggered either if the
+			 * lastScheduleCheck is null (i.e. the scheduleListView is shown for
+			 * the first time), or when the specified interval passed from the
+			 * last check.
+			 */
           	d = new Date();
           	now = d.getTime();
           	if ((this.lastScheduleCheck == null) || ((this.lastScheduleCheck + this.scheduleCheckInterval) < now)){
@@ -322,7 +327,7 @@ enyo.kind({
      	this.$.pane.back();
      },
      
-     /* Show/hide the popup informing about the internet connection*/
+     /* Show/hide the popup informing about the internet connection */
      showConnPopup():function(){
     	 this.$.connPopup.openAtCenter();
      }
@@ -333,14 +338,17 @@ enyo.kind({
      
 /* ==== System events ==== */
      
-     /* Because Enyo does not process the gestures from the Pre3
-      * gesture zone 'automagically', this handler does it programatically*/
+     /*
+		 * Because Enyo does not process the gestures from the Pre3 gesture zone
+		 * 'automagically', this handler does it programatically
+		 */
      backGestureHandler: function(inSender, inEvent) {
          if (this.$.pane.getView() != this.$.mainPane){
-         	/* Using preventDefault() will prevent it from going to card view.
-         	 * To preserve the expected behaviour, we need to use it only when there is no
-         	 * possible 'back' step - i.e. on the mainPane.
-         	*/
+         	/*
+			 * Using preventDefault() will prevent it from going to card view.
+			 * To preserve the expected behaviour, we need to use it only when
+			 * there is no possible 'back' step - i.e. on the mainPane.
+			 */
          	inEvent.preventDefault();
          	this.goBack();
          }
@@ -359,18 +367,22 @@ enyo.kind({
     },
     
 
-    /* Handlers for downloading the schedule updates.*/
+    /* Handlers for downloading the schedule updates. */
     
-    /* If the reponse seems to be OK, store the received
-     * JSON object into the localStorage. */
+    /*
+	 * If the reponse seems to be OK, store the received JSON object into the
+	 * localStorage.
+	 */
     gotSchedule: function(inSender, inResponse, inRequest){
     	if (JSON.stringify(inResponse).length > 100){
     		this.setLocalObject("schedule", inResponse);
     		this.schedule = this.getLocalObject("schedule");
     	}
     },
-    /* When the request fails, schedule next try for the subsequent
-     * 'showing' of the scheduleListView */
+    /*
+	 * When the request fails, schedule next try for the subsequent 'showing' of
+	 * the scheduleListView
+	 */
 	gotScheduleFailure: function(inSender, inResponse, inRequest){
     	// since something went terribly wrong, make sure that we retry
     	// download by setting timestamp & lastScheduleCheck to 0
@@ -380,9 +392,11 @@ enyo.kind({
     },
 
     
-    /* When new schedule-ts is downloaded, check, whether the
-     * timestamp is newer than the locally stored data.
-     * If so, then trigger the full schedule download*/
+    /*
+	 * When new schedule-ts is downloaded, check, whether the timestamp is newer
+	 * than the locally stored data. If so, then trigger the full schedule
+	 * download
+	 */
     gotScheduleTs: function(inSender, inResponse, inRequest){
     	if (JSON.stringify(inResponse).length > 8){
     		last_ts = localStorage.getItem("timestamp");
@@ -420,9 +434,9 @@ enyo.kind({
     
 /* ==== List Views (Repeater) display ==== */
 
-/* The Repeaters call the xyzSetupRow method (callbacks from onSetupRow),
- * as long, as the xyzSetupRow keeps returning new Items to add to the
- * List View.
+/*
+ * The Repeaters call the xyzSetupRow method (callbacks from onSetupRow), as
+ * long, as the xyzSetupRow keeps returning new Items to add to the List View.
  * Each time the xyzSetupRow is called, the inIndex is increased by one.
  */
 
@@ -448,15 +462,15 @@ enyo.kind({
     },
 
 	/*
-	 * Takes the previously filtered schedule events (see filter_schedule() in the 'Schedule' secion), and creates
-	 * Item for each one. 
-	 *  
-	 * There is a minor 'hack' tied to our need of showing duration of the talks/labs
-	 * in 'header' of each 'section of events with equal duration'.
-	 * When start/end time of the item is different from the previous one (previous
-	 * values are stored in this.last_start & this.last_end), we add a a 'two liner' - 
-	 * a VFlexBox containing two HFlexBoxes. Top one is the 'header with time', bottom one
-	 * is the event information.
+	 * Takes the previously filtered schedule events (see filter_schedule() in
+	 * the 'Schedule' secion), and creates Item for each one.
+	 * 
+	 * There is a minor 'hack' tied to our need of showing duration of the
+	 * talks/labs in 'header' of each 'section of events with equal duration'.
+	 * When start/end time of the item is different from the previous one
+	 * (previous values are stored in this.last_start & this.last_end), we add a
+	 * a 'two liner' - a VFlexBox containing two HFlexBoxes. Top one is the
+	 * 'header with time', bottom one is the event information.
 	 */
 	scheduleSetupRow: function(inSender, inIndex) {
 
@@ -469,7 +483,8 @@ enyo.kind({
 	    		            	    		                   {content: item.speaker, style: "font-size: 80%;"},
 	    		            	    		                                                 ]};
 	    		to_detail = {content: ">", style: "margin-left: 5px; font-weight: bold"};
-	    		// The time has changed -> we need to add also the 'time header'.
+	    		// The time has changed -> we need to add also the 'time
+				// header'.
 	    		if ((item.start != this.last_start) || (item.end != this.last_end)){
 	    			line1 = {kind:"HFlexBox", components: [{content: item.date, style: "font-size: 80%"},{kind: "Spacer"}, {content: item.start+" - "+item.end, style: "font-size: 80%"}]};
 	    			line2 = {kind:"HFlexBox", components: [room, about, to_detail]};
@@ -488,23 +503,23 @@ enyo.kind({
 		this.last_end = null;
 	},
 
-/* ====  Schedule ==== */
+/* ==== Schedule ==== */
 	
 /* ---- Helper methods ---- */
 	
-	/* This method is pointless, since the timestamp-end property
-	 * was added in the newer versions of the schedule.json, but
-	 * it's cool magic :D
+	/*
+	 * This method is pointless, since the timestamp-end property was added in
+	 * the newer versions of the schedule.json, but it's cool magic :D
 	 * 
-	 * Start time is taken from the item.timestamp;
-	 * End time is computed from start time & duration;
-	 * Duration is computed from two HH:MM strings (item.start & item.end)
-	 * First the strings are split to an aray [hours, minutes]
-	 * Then the duration in hours/minutes is compuder as end[hours/minuts] - start[hours/minutes]
-	 * And then the 'hour duration' and 'minute duration' is converted to seconds.
+	 * Start time is taken from the item.timestamp; End time is computed from
+	 * start time & duration; Duration is computed from two HH:MM strings
+	 * (item.start & item.end) First the strings are split to an aray [hours,
+	 * minutes] Then the duration in hours/minutes is compuder as
+	 * end[hours/minuts] - start[hours/minutes] And then the 'hour duration' and
+	 * 'minute duration' is converted to seconds.
 	 * 
-	 * This obviously works even for times like 9:15 to 10:05; since the event then
-	 * lasts for 1 hour & -10 minutes (which equals 50 minutes ;)).
+	 * This obviously works even for times like 9:15 to 10:05; since the event
+	 * then lasts for 1 hour & -10 minutes (which equals 50 minutes ;)).
 	 */
 	scheduleItemEndTimestamp: function(item){
 		start = item.start.split(':');
@@ -522,13 +537,12 @@ enyo.kind({
 	},
 	
 	/*
-	 * Selects a subset of events from the whole schedule,
-	 * based on the day (this.selected_day) and event type
-	 * (this.selected_type).
+	 * Selects a subset of events from the whole schedule, based on the day
+	 * (this.selected_day) and event type (this.selected_type).
 	 * 
-	 * If the selected_day is "Now", then additional filtering,
-	 * based on the current date & time takes place, in order to
-	 * show just some of the events 'around' the current datetime.
+	 * If the selected_day is "Now", then additional filtering, based on the
+	 * current date & time takes place, in order to show just some of the events
+	 * 'around' the current datetime.
 	 */
 	filter_schedule: function(){
 		this.filtered_schedule = {items:[]};
@@ -540,8 +554,10 @@ enyo.kind({
 					if (this.selected_day == "Now"){
 						// store all items of the requested type
 						// then we'll go throught these items once again
-						// and take the one, which will start after current timestamp
-						// and the one before that (the one, which is currently active). 
+						// and take the one, which will start after current
+						// timestamp
+						// and the one before that (the one, which is currently
+						// active).
 						now_helper.push(item);
 					}
 					else if (item.date == this.day_to_date[this.selected_day]){
@@ -557,8 +573,10 @@ enyo.kind({
 				now_time = new Date();
 				now_time = now_time.getTime()
 				
-				/* interval <"now" - 30 min; "now" + 60 min>, in which we show
-				 * the 'current' activities */ 
+				/*
+				 * interval <"now" - 30 min; "now" + 60 min>, in which we show
+				 * the 'current' activities
+				 */ 
 				start_interval = (now_time - offset).toString();
 				end_interval = (now_time + offset+offset).toString();
 				now_time = now_time.toString();
@@ -572,13 +590,18 @@ enyo.kind({
 					if ((start <= now_time) && (now_time <= end)){
 						this.filtered_schedule.items.push(item);
 					}
-					/* The event starts outside the interval, but ends inside the interval ->
-					 * The event ended just before 'now'.*/
+					/*
+					 * The event starts outside the interval, but ends inside
+					 * the interval -> The event ended just before 'now'.
+					 */
 					else if ((start < start_interval) && (end > start_interval)){
 						this.filtered_schedule.items.push(item);
 					}
-					/* The event starts inside the interval, but ends outside the interval ->
-					 * The event will take place just after 'now'.*/
+					/*
+					 * The event starts inside the interval, but ends outside
+					 * the interval -> The event will take place just after
+					 * 'now'.
+					 */
 					else if ((start < end_interval) && (end > end_interval)){
 						this.filtered_schedule.items.push(item);
 					}
@@ -590,7 +613,7 @@ enyo.kind({
 
 	},
 	
-/* ==== Calendar ====  */
+/* ==== Calendar ==== */
 	
 	sdAddToCalendar_click: function(){
 
@@ -666,7 +689,7 @@ enyo.kind({
     },	
 	
 
-/* ==== Buttons and other clickable stuff  ==== */
+/* ==== Buttons and other clickable stuff ==== */
     
 	scheduleItemClick: function(inSender) {
 		item = this.filtered_schedule.items[inSender.rowIndex];
@@ -721,7 +744,7 @@ enyo.kind({
 
     aboutBtn_click: function(){
     	this.$.pane.selectViewByName("aboutPane");
-//        localStorage.clear();
+// localStorage.clear();
     },
     contactBtn_click: function() {
     	this.$.pane.selectViewByName("contactsPane");
