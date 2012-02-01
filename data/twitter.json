@@ -1,0 +1,56 @@
+{
+	"completed_in": 0.113,
+	"max_id": 155309698722168833,
+	"max_id_str": "155309698722168833",
+	"page": 1,
+	"query": "%23devconf",
+	"refresh_url": "?since_id=155309698722168833&q=%23devconf",
+	"results": [
+		{
+			"created_at": "Fri, 06 Jan 2012 15:28:12 +0000",
+			"from_user": "RezzaBuh",
+			"from_user_id": 27031838,
+			"from_user_id_str": "27031838",
+			"from_user_name": "Jaroslav Reznik",
+			"geo": null,
+			"id": 155309698722168833,
+			"id_str": "155309698722168833",
+			"iso_language_code": "en",
+			"metadata": {
+				"result_type": "recent"
+			},
+			"profile_image_url": "http://a2.twimg.com/profile_images/1274202862/hackerogotchi_normal.png",
+			"profile_image_url_https": "https://si0.twimg.com/profile_images/1274202862/hackerogotchi_normal.png",
+			"source": "&lt;a href=&quot;http://twitter.com/&quot;&gt;web&lt;/a&gt;",
+			"text": "Working on Red Hat #devconf app for #harmattan @redhatcz - http://t.co/G1DjBQ9W - so I'd like to invite you too #n9 #n950club owners!",
+			"to_user": null,
+			"to_user_id": null,
+			"to_user_id_str": null,
+			"to_user_name": null
+		}, {
+			"created_at": "Fri, 06 Jan 2012 15:01:51 +0000",
+			"from_user": "marek_jelen",
+			"from_user_id": 18667883,
+			"from_user_id_str": "18667883",
+			"from_user_name": "Marek Jelen",
+			"geo": null,
+			"id": 155303066084708353,
+			"id_str": "155303066084708353",
+			"iso_language_code": "en",
+			"metadata": {
+				"result_type": "recent"
+			},
+			"profile_image_url": "http://a2.twimg.com/profile_images/1605687382/fotog_normal.png",
+			"profile_image_url_https": "https://si0.twimg.com/profile_images/1605687382/fotog_normal.png",
+			"source": "&lt;a href=&quot;http://twitter.com/tweetbutton&quot; rel=&quot;nofollow&quot;&gt;Tweet Button&lt;/a&gt;",
+			"text": "17. February 2012  Developer Conference 2012  #devconf http://t.co/IZSTN5lw",
+			"to_user": null,
+			"to_user_id": null,
+			"to_user_id_str": null,
+			"to_user_name": null
+		}
+	],
+	"results_per_page": 15,
+	"since_id": 0,
+	"since_id_str": "0"
+}
