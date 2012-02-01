@@ -328,9 +328,9 @@ enyo.kind({
      },
      
      /* Show/hide the popup informing about the internet connection */
-     showConnPopup():function(){
+     showConnPopup:function(){
     	 this.$.connPopup.openAtCenter();
-     }
+     },
      
      closeConnPopup: function(){
      	this.$.connPopup.close()
