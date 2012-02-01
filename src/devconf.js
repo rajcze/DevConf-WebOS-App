@@ -24,6 +24,7 @@ enyo.kind({
     components:
       [
         {kind: enyo.ApplicationEvents, onBack: "backGestureHandler"},
+        
         {name: "getLocalSchedule", kind: "WebService",
     	   url: "data/schedule.json",
     	   onSuccess: "gotSchedule",
@@ -132,7 +133,6 @@ enyo.kind({
 			        {name: "sdTags", content: "Tags", style: "font-size: 80%"},
 			        {content: "&nbsp;"},
 			        {kind: "Scroller", flex: 1, components: [{name: "sdDescription", content: "Description"}]},
-			        //{name: "sdAddToCalendar", kind: "Button", caption: "Add to Calendar", onclick: "sdAddToCalendar_click"},
 			      ]
 			},
 			{
@@ -172,7 +172,6 @@ enyo.kind({
 				    {style: "font-size: 90%", content: "<b>Venue</b>"},
 				    {style: "font-size: 80%; margin-bottom: 10px", content: "Faculty of Informatics, Masaryk University<br>Botanická 554/68a<br>602 00 Brno-Ponava<br>Czech Republic"},
 				    {kind: "Button", caption: "Show map", name: "showMapBtn", onclick: "showMapBtn_click"},
-				    //{kind: "Button", caption: "Show lecture rooms map", name: "showLectureRoomsBtn", onclick: "showLectureRoomsBtn_click"},
 				   ]}
 				  ]
 			},
@@ -211,62 +210,147 @@ enyo.kind({
 			},
           ]
         },
-        //{kind: "Spacer"},
-        //{kind: "Button", name: "backBtn", caption: "Back", onclick: "goBack"},
         {kind: "Toolbar", name: "backBtn", components: [
                                        {icon: "images/back_32.png", onclick: "goBack"},
                                        {kind:"Spacer"},
                                        {icon: "images/calendar_32.png", name: "sdAddToCalendar", onclick: "sdAddToCalendar_click"}
                                      ]}
-      ],
+     ],
 
-      
-    setLocalObject: function(key, value){
-    	localStorage.setItem(key, JSON.stringify(value));
+
+     create: function() {
+         this.inherited(arguments);
+         lcl = this.getLocalObject("schedule");
+         if ((lcl == null) || (JSON.stringify(lcl).length < 100)){
+         	this.$.getLocalSchedule.call();
+         }
+         else{
+         	this.schedule = lcl;
+         }
+         lcl = localStorage.getItem("timestamp");
+         if ((lcl == null) || (JSON.stringify(lcl).length < 8)){
+         	this.$.getLocalScheduleTs.call();
+         }
+         this.$.pane.selectViewByName("mainPane");
+         this.getConnStatus();
+         
     },
-    getLocalObject: function(key){
-    	var value = localStorage.getItem(key);
-    	return value && JSON.parse(value);
-    },
+     
+/* ==== Helper methods ==== */
     
-    create: function() {
-        this.inherited(arguments);
-        lcl = this.getLocalObject("schedule");
-        if ((lcl == null) || (JSON.stringify(lcl).length < 100)){
-//        	enyo.log("getting local schedule");
-        	this.$.getLocalSchedule.call();
-        }
-        else{
-        	this.schedule = lcl;
-        }
-        lcl = localStorage.getItem("timestamp");
-//        enyo.log("lcl timestamp");
-//        enyo.log(lcl);
-        if ((lcl == null) || (JSON.stringify(lcl).length < 8)){
-//        	enyo.log("getting local scheduleTS");
-        	this.$.getLocalScheduleTs.call();
-        }
-        this.$.pane.selectViewByName("mainPane");
-        this.getConnStatus();
-        
-    },
+     /* Because localStorage stores just strings, and we need to 
+      * save the whole json object (schedule), these two methods
+      * handle the storing/retrieving.*/
+     setLocalObject: function(key, value){
+     	localStorage.setItem(key, JSON.stringify(value));
+     },
+
+     getLocalObject: function(key){
+     	var value = localStorage.getItem(key);
+     	return value && JSON.parse(value);
+     },
     
+     /* Triggers the request for current connections state.*/
+     getConnStatus : function(inSender, inResponse)
+     {
+         this.$.getConnMgrStatus.call({ "subscribe": true });
+     },
+
+
+/* ==== Pane Switching; UI components displaying/hiding ==== */
+
+    /* This method shows/hides UI components according to the
+     * currently selected pane view.
+     * This mostly consists of switching the big/slim header
+     * and showing/hiding the back button, where appropriate.
+     * 
+     * The only exception here is the selection of the schedule
+     * list, which triggers check for the schedule update. */
+    viewSelected: function(inSender, inView) {
+         if (inView == this.$.mainPane) {
+             this.$.backBtn.hide();
+             this.$.slimHeader.hide();
+             this.$.fullHeader.show();
+             this.$.sdAddToCalendar.hide();
+         } else if (inView == this.$.eventSelect) {
+             this.$.backBtn.show();
+             this.$.slimHeader.show();
+             this.$.fullHeader.hide();
+             this.$.sdAddToCalendar.hide();
+             this.$.dayGroup.setCaption(this.selected_day);
+         }
+         else if (inView == this.$.twitterWall) {
+ 	        this.$.backBtn.show();
+ 	        this.$.sdAddToCalendar.hide();
+         }
+         else if (inView == this.$.scheduleItemDetail){
+         	this.$.sdAddToCalendar.show();
+         }
+         else if (inView == this.$.mapPane){
+             this.$.backBtn.show();
+             this.$.slimHeader.show();
+             this.$.fullHeader.hide();
+         }
+         else if (inView == this.$.aboutPane){
+         	this.$.backBtn.show();
+             this.$.slimHeader.show();
+             this.$.fullHeader.hide();
+         }
+         else if (inView == this.$.contactsPane){
+         	this.$.backBtn.show();
+         }
+         else if (inView == this.$.helpPane){
+         	this.$.backBtn.show();
+         }
+         else if (inView == this.$.scheduleListView){
+          	this.$.sdAddToCalendar.hide();
+          	/* Check, whether it's time for next check for updates of the schedule.
+          	 * Update check is triggered either if the lastScheduleCheck is null
+          	 * (i.e. the scheduleListView is shown for the first time),
+          	 * or when the specified interval passed from the last check.*/
+          	d = new Date();
+          	now = d.getTime();
+          	if ((this.lastScheduleCheck == null) || ((this.lastScheduleCheck + this.scheduleCheckInterval) < now)){
+          		this.lastScheduleCheck = now;
+                this.$.getScheduleTs.call();	
+          	}
+          }
+     },
+     
+     /* Show the previous pane view. */
+     goBack: function(){
+     	this.$.pane.back();
+     },
+     
+     /* Show/hide the popup informing about the internet connection*/
+     showConnPopup():function(){
+    	 this.$.connPopup.openAtCenter();
+     }
+     
+     closeConnPopup: function(){
+     	this.$.connPopup.close()
+     },
+     
+/* ==== System events ==== */
+     
+     /* Because Enyo does not process the gestures from the Pre3
+      * gesture zone 'automagically', this handler does it programatically*/
+     backGestureHandler: function(inSender, inEvent) {
+         if (this.$.pane.getView() != this.$.mainPane){
+         	/* Using preventDefault() will prevent it from going to card view.
+         	 * To preserve the expected behaviour, we need to use it only when there is no
+         	 * possible 'back' step - i.e. on the mainPane.
+         	*/
+         	inEvent.preventDefault();
+         	this.goBack();
+         }
+     },
+     
     
-    backGestureHandler: function(inSender, inEvent) {
-        if (this.$.pane.getView() != this.$.mainPane){
-        	/* Using preventDefault() will prevent it from going to card view.
-        	 * To preserve the expected behaviour, we need to use it only when there is no
-        	 * possible 'back' step - i.e. on the mainPane.
-        	*/
-        	inEvent.preventDefault();
-        	this.goBack();
-        }
-    },
-    
+    /* Handlers for the getConnMgrStatus service calls */
     connStatusFinished : function(inSender, inResponse) {
-//        enyo.log("getConnStatus success, results=" + enyo.json.stringify(inResponse));
         if (inResponse.isInternetConnectionAvailable != true){
-        	this.$.connPopup.openAtCenter();
+        	this.showConnPopup();
         }
     },
     
@@ -274,35 +358,20 @@ enyo.kind({
         enyo.log("getConnStatus failure, results=" + enyo.json.stringify(inResponse));
     },
     
-    getConnStatus : function(inSender, inResponse)
-    {
-        this.$.getConnMgrStatus.call({ "subscribe": true });
-    },
+
+    /* Handlers for downloading the schedule updates.*/
     
-    callEischmann: function(){
-    	this.$.AppManService.call({target: "tel://+420604346394"});
-    },
-    callVokal: function(){
-    	this.$.AppManService.call({target: "tel://+420608437507"});
-    },
-    callReznik: function(){
-    	this.$.AppManService.call({target: "tel://+420602797774"})
-    },
-    
-    closeConnPopup: function(){
-    	this.$.connPopup.close()
-    },
-    
+    /* If the reponse seems to be OK, store the received
+     * JSON object into the localStorage. */
     gotSchedule: function(inSender, inResponse, inRequest){
-//    	enyo.log("got schedule");
     	if (JSON.stringify(inResponse).length > 100){
-//    		enyo.log("storing schedule");
     		this.setLocalObject("schedule", inResponse);
     		this.schedule = this.getLocalObject("schedule");
     	}
     },
+    /* When the request fails, schedule next try for the subsequent
+     * 'showing' of the scheduleListView */
 	gotScheduleFailure: function(inSender, inResponse, inRequest){
-//    	enyo.log("gotScheduleFailure");
     	// since something went terribly wrong, make sure that we retry
     	// download by setting timestamp & lastScheduleCheck to 0
 		now_time = new Date();
@@ -311,14 +380,13 @@ enyo.kind({
     },
 
     
+    /* When new schedule-ts is downloaded, check, whether the
+     * timestamp is newer than the locally stored data.
+     * If so, then trigger the full schedule download*/
     gotScheduleTs: function(inSender, inResponse, inRequest){
-//    	enyo.log("got schedule ts");
     	if (JSON.stringify(inResponse).length > 8){
     		last_ts = localStorage.getItem("timestamp");
-//    		enyo.log(last_ts);
-//    		enyo.log(inResponse);
     		if ((last_ts == null) || (last_ts < inResponse)){
-//    			enyo.log("storing new timestamp");
     			localStorage.setItem("timestamp", inResponse);
     			this.$.getSchedule.call();
     		}
@@ -330,12 +398,13 @@ enyo.kind({
     },
     
     
+    /* Twitter download handler */
     gotTwitter: function(inSender, inResponse, inRequest){
     	this.twitter_data = inResponse;
     	if (inResponse.length < 100){
     		return this.gotTwitterFailure(inSender, inResponse, inRequest);
     	}
-//    	enyo.log("gotTwitter");
+    	// Refresh the twitter wall page
     	if (this.$.pane.getViewName() != "twitterWall"){
     		this.$.pane.selectViewByName("twitterWall");
     	}
@@ -347,8 +416,19 @@ enyo.kind({
     	enyo.log("gotTwitterFailure");
     },
     
+
     
+/* ==== List Views (Repeater) display ==== */
+
+/* The Repeaters call the xyzSetupRow method (callbacks from onSetupRow),
+ * as long, as the xyzSetupRow keeps returning new Items to add to the
+ * List View.
+ * Each time the xyzSetupRow is called, the inIndex is increased by one.
+ */
+
+/* ---- Twitter Wall ---- */
     
+    /* Creates an item containing user image, name and tweet. */
     twitterSetupRow: function(inSender, inIndex){
     	if (this.twitter_data != null){
     		if (inIndex < this.twitter_data.results.length){
@@ -367,19 +447,19 @@ enyo.kind({
     	}
     },
 
+	/*
+	 * Takes the previously filtered schedule events (see filter_schedule() in the 'Schedule' secion), and creates
+	 * Item for each one. 
+	 *  
+	 * There is a minor 'hack' tied to our need of showing duration of the talks/labs
+	 * in 'header' of each 'section of events with equal duration'.
+	 * When start/end time of the item is different from the previous one (previous
+	 * values are stored in this.last_start & this.last_end), we add a a 'two liner' - 
+	 * a VFlexBox containing two HFlexBoxes. Top one is the 'header with time', bottom one
+	 * is the event information.
+	 */
 	scheduleSetupRow: function(inSender, inIndex) {
-		/*
-		 * Takes the previously filtered schedule events, and creates
-		 * an item in the Repeater for each one.
-		 * The Repeater stops calling this method, when no return value is specified.
-		 * 
-		 * There is a minor 'hack' tied to our need of showing duration of the talks/labs
-		 * in 'header' of each 'section of events with equal duration'.
-		 * When start/end time of the item is different from the previous one (previous
-		 * values are stored in this.last_start & this.last_end), we add a a 'two liner' - 
-		 * a VFlexBox containing two HFlexBoxes. Top one is the 'header with time', bottom one
-		 * is the event information.
-		 */
+
 		if (this.filtered_schedule != null){
 	    	if (inIndex < this.filtered_schedule.items.length){
 	    		item = this.filtered_schedule.items[inIndex];
@@ -389,6 +469,7 @@ enyo.kind({
 	    		            	    		                   {content: item.speaker, style: "font-size: 80%;"},
 	    		            	    		                                                 ]};
 	    		to_detail = {content: ">", style: "margin-left: 5px; font-weight: bold"};
+	    		// The time has changed -> we need to add also the 'time header'.
 	    		if ((item.start != this.last_start) || (item.end != this.last_end)){
 	    			line1 = {kind:"HFlexBox", components: [{content: item.date, style: "font-size: 80%"},{kind: "Spacer"}, {content: item.start+" - "+item.end, style: "font-size: 80%"}]};
 	    			line2 = {kind:"HFlexBox", components: [room, about, to_detail]};
@@ -402,24 +483,33 @@ enyo.kind({
 	    		return {kind: "Item", layoutKind: "HFlexLayout", onclick: "scheduleItemClick", components: cmpnt};
 	    	}
     	}
+
 		this.last_start = null;
 		this.last_end = null;
 	},
-    
-	scheduleItemClick: function(inSender) {
-		item = this.filtered_schedule.items[inSender.rowIndex];
-		this.selectedScheduleItemIndex = inSender.rowIndex;
-		this.$.sdTopic.setContent(item.topic);
-		this.$.sdSpeaker.setContent(item.speaker);
-		this.$.sdTags.setContent(item.tags);
-		this.$.sdDescription.setContent(item.description);
-		this.$.pane.selectViewByName("scheduleItemDetail");
-		
-	},
+
+/* ====  Schedule ==== */
 	
+/* ---- Helper methods ---- */
+	
+	/* This method is pointless, since the timestamp-end property
+	 * was added in the newer versions of the schedule.json, but
+	 * it's cool magic :D
+	 * 
+	 * Start time is taken from the item.timestamp;
+	 * End time is computed from start time & duration;
+	 * Duration is computed from two HH:MM strings (item.start & item.end)
+	 * First the strings are split to an aray [hours, minutes]
+	 * Then the duration in hours/minutes is compuder as end[hours/minuts] - start[hours/minutes]
+	 * And then the 'hour duration' and 'minute duration' is converted to seconds.
+	 * 
+	 * This obviously works even for times like 9:15 to 10:05; since the event then
+	 * lasts for 1 hour & -10 minutes (which equals 50 minutes ;)).
+	 */
 	scheduleItemEndTimestamp: function(item){
 		start = item.start.split(':');
 		end = item.end.split(':');
+		
 		hours = parseInt(end[0]) - parseInt(start[0]);
 		minutes = parseInt(end[1]) - parseInt(start[1]);
 		duration = hours*3600 + minutes * 60;
@@ -431,17 +521,79 @@ enyo.kind({
 		return end;
 	},
 	
+	/*
+	 * Selects a subset of events from the whole schedule,
+	 * based on the day (this.selected_day) and event type
+	 * (this.selected_type).
+	 * 
+	 * If the selected_day is "Now", then additional filtering,
+	 * based on the current date & time takes place, in order to
+	 * show just some of the events 'around' the current datetime.
+	 */
+	filter_schedule: function(){
+		this.filtered_schedule = {items:[]};
+		now_helper = [];
+		if (this.schedule != null){
+			for (i in this.schedule.items){
+				item = this.schedule.items[i];
+				if (item.type == this.selected_type){
+					if (this.selected_day == "Now"){
+						// store all items of the requested type
+						// then we'll go throught these items once again
+						// and take the one, which will start after current timestamp
+						// and the one before that (the one, which is currently active). 
+						now_helper.push(item);
+					}
+					else if (item.date == this.day_to_date[this.selected_day]){
+							this.filtered_schedule.items.push(item);
+					}
+				}
+				
+			}
+			if (this.selected_day == "Now"){
+				now_len = now_helper.length;
+				offset = 1800000; // 30 minutes in miliseconds
+				
+				now_time = new Date();
+				now_time = now_time.getTime()
+				
+				/* interval <"now" - 30 min; "now" + 60 min>, in which we show
+				 * the 'current' activities */ 
+				start_interval = (now_time - offset).toString();
+				end_interval = (now_time + offset+offset).toString();
+				now_time = now_time.toString();
+				
+				for (i in now_helper){
+					item = now_helper[i];
+					start = item.timestamp + "000";
+					end = this.scheduleItemEndTimestamp(item);
+					
+					/* The event is currently in progress */
+					if ((start <= now_time) && (now_time <= end)){
+						this.filtered_schedule.items.push(item);
+					}
+					/* The event starts outside the interval, but ends inside the interval ->
+					 * The event ended just before 'now'.*/
+					else if ((start < start_interval) && (end > start_interval)){
+						this.filtered_schedule.items.push(item);
+					}
+					/* The event starts inside the interval, but ends outside the interval ->
+					 * The event will take place just after 'now'.*/
+					else if ((start < end_interval) && (end > end_interval)){
+						this.filtered_schedule.items.push(item);
+					}
+					
+				}
+		    }
+			
+		}
+
+	},
+	
+/* ==== Calendar ====  */
+	
 	sdAddToCalendar_click: function(){
-		/* Start time is taken from the item.timestamp;
-		 * End time is computed from start time & duration;
-		 * Duration is computed from two HH:MM strings (item.start & item.end)
-		 * First the strings are split to an aray [hours, minutes]
-		 * Then the duration in hours/minutes is compuder as end[hours/minuts] - start[hours/minutes]
-		 * And then the 'hour duration' and 'minute duration' is converted to seconds.
-		 * 
-		 *  This obviously works even for times like 9:15 to 10:05; since the event then
-		 *  lasts for 1 hour & -10 minutes (which equals 50 minutes ;)).
-		 */
+
 		item = this.filtered_schedule.items[this.selectedScheduleItemIndex];
 		
 		start = item.timestamp + "000";
@@ -456,68 +608,75 @@ enyo.kind({
 	    	this.$.openCalendar.call({"id": "com.palm.app.calendar", "params": params})
 	},
 	
-	filter_schedule: function(){
-		/*
-		 * Selects a subset of events from the whole schedule,
-		 * based on the day (this.selected_day) and event type
-		 * (this.selected_type).
-		 */
-//		enyo.log("filter schedule");
-		this.filtered_schedule = {items:[]};
-		now_helper = [];
-//		enyo.log(this.schedule);
-		if (this.schedule != null){
-			for (i in this.schedule.items){
-				item = this.schedule.items[i];
-				if (item.type == this.selected_type){
-					if (this.selected_day == "Now"){
-						//store all items of the requested type
-						//then we'll go throught these items once again
-						// and take the one, which will start after current timestamp
-						// and the one before that (the one, which is currently active). 
-						now_helper.push(item);
-					}
-					else if (item.date == this.day_to_date[this.selected_day]){
-							this.filtered_schedule.items.push(item);
-					}
-				}
-				
-			}
-			now_len = now_helper.length;
-			offset = 1800000; // 30 minutes in miliseconds
-			now_time = new Date();
-			//FIXME: odstranit, kvuli ladeni
-			//now_time = new Date("February 17,  2012 08:00:00 UTC");
-			now_time = now_time.getTime()
-			
-			//interval <"now" - 30 min; "now" + 60 min>, in which we show
-			// the 'current' activities
-			start_interval = (now_time - offset).toString();
-			end_interval = (now_time + offset+offset).toString();
-			now_time = now_time.toString();
-			
-			for (i in now_helper){
-				item = now_helper[i];
-				start = item.timestamp + "000";
-				end = this.scheduleItemEndTimestamp(item);
-				
-				if ((start <= now_time) && (now_time <= end)){ // just now
-//					enyo.log("NOW");
-					this.filtered_schedule.items.push(item);
-				}
-				else if ((start < start_interval) && (end > start_interval)){ // just before now (~ item starts before the interval, but ends inside the interval)
-//					enyo.log("Before");
-					this.filtered_schedule.items.push(item);
-				}
-				else if ((start < end_interval) && (end > end_interval)){ // just after now (~ item starts in the inteval, but ends after the interval)
-//					enyo.log("After");
-					this.filtered_schedule.items.push(item);
-				}
-				
-			}
-			
-		}
+/* ==== Map ==== */
+	
+	/* Show associated infobox on click */
+    doPinOnclick: function(inSender) {
+        var pin = inSender.target;
+        if (pin) {
+            var infobox = pin.infobox;
+            if (infobox) {
+                infobox.setOptions({ visible: true });
+            }
+        }
+    },
+     
+    /* Hide infobox */
+    doInfoboxOnclick: function(inSender) { var pin = inSender.target;
+        if (pin) {
+            var infobox = pin.infobox;
+            if (infobox) {
+                infobox.setOptions({ visible: false });
+            }
+        }
+    },
+ 
+    /* Add three navigation points to the map */
+    setup_map: function(){
+    	var bingMap = this.$.myMap.hasMap();
+    	
+    	locations = [
+    			{"title": "Red Hat Czech", "description": "Purkyňova 99, Brno", "lat": 49.2260839, "lon": 16.5812650},
+    			{"title": "Hotel Avanti", "description": "Střední 549/61, Brno", "lat": 49.2129761, "lon": 16.6045919},
+    			{"title": "FI MUNI", "description": "Botanická 554/68a, Brno", "lat": 49.2099867, "lon": 16.5990378},
+    	];
+    	for (i in locations){
+    		loc = locations[i];
 
+    		var location = new Microsoft.Maps.Location(loc['lat'], loc['lon']);
+        	bingMap.setView({
+        	        center: location,
+        	        zoom: 13
+        	});
+        	
+    		var inOptions = null;
+    		var pushpin = new Microsoft.Maps.Pushpin(location, inOptions);
+        	  
+    	    var infobox = new Microsoft.Maps.Infobox(location, {title: loc['title'], description: loc['description'], visible:false, offset:new Microsoft.Maps.Point(0,35)});
+
+    	    pushpin.infobox = infobox;
+    	    
+    	    Microsoft.Maps.Events.addHandler(pushpin, 'click', enyo.bind(this, "doPinOnclick"));
+    	    Microsoft.Maps.Events.addHandler(infobox, 'click', enyo.bind(this, "doInfoboxOnclick")); 
+        	
+    	    this.$.myMap.map.entities.push(infobox);
+        	this.$.myMap.map.entities.push(pushpin);	
+    	}
+    	
+    },	
+	
+
+/* ==== Buttons and other clickable stuff  ==== */
+    
+	scheduleItemClick: function(inSender) {
+		item = this.filtered_schedule.items[inSender.rowIndex];
+		this.selectedScheduleItemIndex = inSender.rowIndex;
+		this.$.sdTopic.setContent(item.topic);
+		this.$.sdSpeaker.setContent(item.speaker);
+		this.$.sdTags.setContent(item.tags);
+		this.$.sdDescription.setContent(item.description);
+		this.$.pane.selectViewByName("scheduleItemDetail");
+		
 	},
 	
     talksBtn_click: function(){
@@ -544,108 +703,7 @@ enyo.kind({
     	this.$.listSchedule.render();
     },
     
-    viewSelected: function(inSender, inView) {
-        if (inView == this.$.mainPane) {
-            this.$.backBtn.hide();
-            this.$.slimHeader.hide();
-            this.$.fullHeader.show();
-            this.$.sdAddToCalendar.hide();
-        } else if (inView == this.$.eventSelect) {
-            this.$.backBtn.show();
-            this.$.slimHeader.show();
-            this.$.fullHeader.hide();
-            this.$.sdAddToCalendar.hide();
-            this.$.dayGroup.setCaption(this.selected_day);
-        }
-        else if (inView == this.$.twitterWall) {
-	        this.$.backBtn.show();
-	        this.$.sdAddToCalendar.hide();
-        }
-        else if (inView == this.$.scheduleListView){
-        	this.$.sdAddToCalendar.hide();
-        	d = new Date();
-        	now = d.getTime();
-        	if ((this.lastScheduleCheck == null) || ((this.lastScheduleCheck + this.scheduleCheckInterval) < now)){
-//            	enyo.log("getting new schedule");
-        		this.lastScheduleCheck = now;
-//            	enyo.log(this.lastScheduleCheck);
-                this.$.getScheduleTs.call();	
-        	}
-        }
-        else if (inView == this.$.scheduleItemDetail){
-        	this.$.sdAddToCalendar.show();
-        }
-        else if (inView == this.$.mapPane){
-            this.$.backBtn.show();
-            this.$.slimHeader.show();
-            this.$.fullHeader.hide();
-        }
-        else if (inView == this.$.aboutPane){
-        	this.$.backBtn.show();
-            this.$.slimHeader.show();
-            this.$.fullHeader.hide();
-        }
-        else if (inView == this.$.contactsPane){
-        	this.$.backBtn.show();
-        }
-        else if (inView == this.$.helpPane){
-        	this.$.backBtn.show();
-        }
-    },
-    
-    doPinOnclick: function(inSender) {
-        var pin = inSender.target;
-        if (pin) {
-            var infobox = pin.infobox;
-            if (infobox) {
-                infobox.setOptions({ visible: true });
-            }
-        }
-    },
-     
-    doInfoboxOnclick: function(inSender) { var pin = inSender.target;
-        if (pin) {
-            var infobox = pin.infobox;
-            if (infobox) {
-                infobox.setOptions({ visible: false });
-            }
-        }
-    },
- 
-    setup_map: function(){
-    	var bingMap = this.$.myMap.hasMap();
-    	
-    	locations = [
-    			{"title": "Red Hat Czech", "description": "Purkyňova 99, Brno", "lat": 49.2260839, "lon": 16.5812650},
-    			{"title": "Hotel Avanti", "description": "Střední 549/61, Brno", "lat": 49.2129761, "lon": 16.6045919},
-    			{"title": "FI MUNI", "description": "Botanická 554/68a, Brno", "lat": 49.2099867, "lon": 16.5990378},
-    	];
-    	for (i in locations){
-    		loc = locations[i];
-
-    		var location = new Microsoft.Maps.Location(loc['lat'], loc['lon']);
-        	bingMap.setView({
-        	        center: location,
-        	        zoom: 13
-        	});
-        	
-    		var inOptions = null;
-    		var pushpin = new Microsoft.Maps.Pushpin(location, inOptions);
-        	  
-    	    var infobox = new Microsoft.Maps.Infobox(location, {title: loc['title'], description: loc['description'], visible:false, offset:new Microsoft.Maps.Point(0,35)});
-    	    //infobox.dataIndex = 1;
-    	    pushpin.infobox = infobox;
-    	    
-    	    Microsoft.Maps.Events.addHandler(pushpin, 'click', enyo.bind(this, "doPinOnclick"));
-    	    Microsoft.Maps.Events.addHandler(infobox, 'click', enyo.bind(this, "doInfoboxOnclick")); 
-        	
-    	    this.$.myMap.map.entities.push(infobox);
-        	this.$.myMap.map.entities.push(pushpin);	
-    	}
-    	
-    },
     currentBtn_click: function(){
-//    	enyo.log(enyo.fetchAppId());
     	this.selected_day = "Now";
     	this.$.pane.selectViewByName("eventSelect");
     },
@@ -660,9 +718,7 @@ enyo.kind({
     twitterBtn_click: function(){
     	  this.$.getTwitter.call();
     },
-    goBack: function(){
-    	this.$.pane.back();
-    },
+
     aboutBtn_click: function(){
     	this.$.pane.selectViewByName("aboutPane");
 //        localStorage.clear();
@@ -677,5 +733,15 @@ enyo.kind({
     helpBtn_click: function() {
     	this.$.pane.selectViewByName("helpPane");
     },
-
+    
+    callEischmann: function(){
+     	this.$.AppManService.call({target: "tel://+420604346394"});
+    },
+    callVokal: function(){
+     	this.$.AppManService.call({target: "tel://+420608437507"});
+    },
+    callReznik: function(){
+     	this.$.AppManService.call({target: "tel://+420602797774"})
+    },
+    
 });
