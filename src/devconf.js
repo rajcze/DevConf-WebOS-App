@@ -88,18 +88,22 @@ enyo.kind({
 	        {
 			    name: "mainPane",
 			    kind: enyo.VFlexBox, components:
-			      [           
-			        {kind: "Group", caption: "Program", components:
-			          [
-			            {kind: "Button", name: "currentBtn", caption: "Now", onclick: "currentBtn_click"},
-			            {kind: "Button", name: "day1Btn", caption: "Day 1", onclick: "day1Btn_click"},
-			            {kind: "Button", name: "day2Btn", caption: "Day 2", onclick: "day2Btn_click"},
-			          ]
-			        },
-		            {kind: "Button", name: "aboutBtn", caption: "About", onclick: "aboutBtn_click"},
-		            {kind: "Button", name: "contactBtn", caption: "Contacts", onclick: "contactBtn_click"},
-		            {kind: "Button", name: "twitterBtn", caption: "#devconf", onclick: "twitterBtn_click"},
-			      ]
+			     [ 
+			       {kind: "Scroller", flex:1, components: 
+			    	 [
+				        {kind: "Group", caption: "Program", components:
+				          [
+				            {kind: "Button", name: "currentBtn", caption: "Now", onclick: "currentBtn_click"},
+				            {kind: "Button", name: "day1Btn", caption: "Day 1", onclick: "day1Btn_click"},
+				            {kind: "Button", name: "day2Btn", caption: "Day 2", onclick: "day2Btn_click"},
+				          ]
+				        },
+			            {kind: "Button", name: "aboutBtn", caption: "About", onclick: "aboutBtn_click"},
+			            {kind: "Button", name: "contactBtn", caption: "Contacts", onclick: "contactBtn_click"},
+			            {kind: "Button", name: "twitterBtn", caption: "#devconf", onclick: "twitterBtn_click"},
+			         ]
+			       }
+			     ]
 			},
 			{
 			    name: "eventSelect",
